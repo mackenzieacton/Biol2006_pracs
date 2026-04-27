@@ -34,6 +34,7 @@ summary(model)
  model3 <- lm(viral_load ~ social_contacts + foraging_distance + body_condition,
               data = dat)
  summary(model3)
+
  
  # Plot residuals vs fitted values from your final model
  plot(model3, which = 1)
