@@ -1,89 +1,97 @@
-# Load library package
+# Load required libraries
 library(tidyverse)
-
-# Read in flying fox data
-dat <- read_csv("data/flying_fox.csv")
-
-# Check data structure and that predictors are mean-centred (means ~0)
-summary(dat)
-pairs(dat, upper.panel = panel.smooth)
-
 library(car)
 
-# Starting Model
+# Read in flying fox dataset containing viral load and three predictor 
+# variables (social contacts, foraging distance, body condition) for 
+# 120 P. scapulatus individuals
+dat <- read_csv("data/flying_fox.csv")
+
+# Inspect data structure and confirm predictor variables are mean-centred 
+summary(dat)
+
+# Assess linearity assumption visually -> examine relationship between viral 
+# load and each predictor variable in the top row of the scatterplot matrix.
+# Smooth lines with no obvious curves indicate linear relationships (Figure 1)
+pairs(dat, upper.panel = panel.smooth)
+
+# Fit the fully saturated initial model provided, including all main effects 
+# and two-way and three-way interactions between social contacts, foraging 
+# distance and body condition as predictors of viral load in P. scapulatus
 model <- lm(viral_load ~ social_contacts * foraging_distance * body_condition, 
             data = dat)
 summary(model)
 
- # The data is already centred, which helps VIF interpretation with interactions
- vif(model) 
+# Assess independence of predictor variables (collinearity assumption) using 
+# Variance Inflation Factors (VIF).
+vif(model)
 
- library(DHARMa)
- # normality + homogeneity of variance
- plot(simulateResiduals(model))  
+# Step 1 of model simplification - remove the non-significant three-way 
+# interaction term (p = 0.130) following the hierarchical marginality principle,
+# retaining all two-way interactions
+model2 <- lm(viral_load ~ social_contacts + foraging_distance + body_condition +
+               social_contacts:foraging_distance +
+               social_contacts:body_condition +
+               foraging_distance:body_condition,
+             data = dat)
+# Examine output to assess significance of remaining two-way interactions -
+# all interaction terms remain non-significant (p > 0.41). Model 2 not reported 
+# in results as it is an intermediate simplification step only
+summary(model2)
 
- # Step 1: remove the 3-way interaction
- model2 <- lm(viral_load ~ social_contacts + foraging_distance + body_condition +
-                social_contacts:foraging_distance +
-                social_contacts:body_condition +
-                foraging_distance:body_condition,
-              data = dat)
- summary(model2) 
- 
- # Step 2: main effects only
- model3 <- lm(viral_load ~ social_contacts + foraging_distance + body_condition,
-              data = dat)
- summary(model3)
+# Step 2 of model simplification - remove all non-significant two-way 
+# interaction terms following the hierarchical marginality principle.
+model3 <- lm(viral_load ~ social_contacts + foraging_distance + body_condition,
+             data = dat)
+# Final model summary used to extract all reported statistics.
+summary(model3)
 
- #Figure 2 - qqplot
- qqnorm(model3$residuals,  ## Check if the regression residuals are normally distributed
-        main = "", ylab = "Residuals from Model 3")        
- qqline(model3$residuals)  ## Add the 1:1 line for visualisation
- 
- 
- # Plot residuals vs fitted values from your final model
- plot(model3, which = 1)
+# Assess normality assumption of final model residuals by plotting against 
+# theoretical quantiles from a normal distribution. Points following the 
+# 1:1 line indicate normally distributed residuals (Figure 2)
+qqnorm(model3$residuals,
+       main = "", ylab = "Residuals from Model 3")
+qqline(model3$residuals)
 
- # Display both plots in one figure (1 row, 2 columns)
- par(mfrow = c(1, 2))
- 
- # --- Plot 1: social contacts ---
- 
- # Scatter plot of viral_load vs social_contacts
- plot(viral_load ~ social_contacts, data = dat,
-      pch = 16,
-      col = "grey40",
-      xlab = "Social contacts (number of unique contacts per night, mean-centred)",
-      ylab = "Viral load (RNA copies per mL)",
-      main = "")
- 
- # Add the fitted regression line
- # Other predictors (foraging_distance, body_condition) held at their mean = 0
- curve(cbind(1, x, 0, 0) %*% coef(model3),
-       add = TRUE,
-       col = "firebrick",
-       lwd = 2)
- 
- 
- # --- Plot 2: body condition ---
- # Scatter plot of viral_load vs body_condition
- plot(viral_load ~ body_condition, data = dat,
-      pch = 16,
-      col = "grey40",
-      xlab = "Body condition (mass:forearm length ratio, mean-centred)",
-      ylab = "Viral load (RNA copies per mL)",
-      main = "")
- 
- # Add the fitted regression line
- # Other predictors (social_contacts, foraging_distance) held at their mean = 0
- curve(cbind(1, 0, 0, x) %*% coef(model3),
-       add = TRUE,
-       col = "firebrick",
-       lwd = 2) 
- 
- # Reset to single plot layout
- par(mfrow = c(1, 1)) 
- 
- summary(model3)
- 
- 
+# Assess homogeneity of variance and linearity assumptions of final model 
+# by plotting residuals against fitted values. No systematic pattern or 
+# fanning indicates assumptions are met (Figure 3)
+plot(model3, which = 1)
+
+# Set plot layout to display social contacts and body condition relationships 
+# side by side as a single figure (Figure 4)
+par(mfrow = c(1, 2))
+
+# Figure 4A - Plot viral load against social contacts for all 120 P. scapulatus
+# individuals. 
+plot(viral_load ~ social_contacts, data = dat,
+     pch = 16,
+     col = "grey40",
+     xlab = "Social contacts (number of unique contacts per night, mean-centred)",
+     ylab = "Viral load (RNA copies per mL)",
+     main = "")
+
+# Add predicted regression line for social contacts from final model
+curve(cbind(1, x, 0, 0) %*% coef(model3),
+      add = TRUE,
+      col = "firebrick",
+      lwd = 2)
+
+# Figure 4B - Plot viral load against body condition for all 120 P. scapulatus
+# individuals.
+plot(viral_load ~ body_condition, data = dat,
+     pch = 16,
+     col = "grey40",
+     xlab = "Body condition (mass:forearm length ratio, mean-centred)",
+     ylab = "Viral load (RNA copies per mL)",
+     main = "")
+
+# Add predicted regression line for body condition from final model
+curve(cbind(1, 0, 0, x) %*% coef(model3),
+      add = TRUE,
+      col = "firebrick",
+      lwd = 2)
+
+# Reset plot layout to single figure
+par(mfrow = c(1, 1))
+
