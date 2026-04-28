@@ -16,11 +16,11 @@ model <- lm(viral_load ~ social_contacts * foraging_distance * body_condition,
 summary(model)
 
  # The data is already centred, which helps VIF interpretation with interactions
- vif(model)  # your full model
- # Rule of thumb: VIF > 10 is a problem
- 
+ vif(model) 
+
  library(DHARMa)
- plot(simulateResiduals(model))  # normality + homogeneity of variance
+ # normality + homogeneity of variance
+ plot(simulateResiduals(model))  
 
  # Step 1: remove the 3-way interaction
  model2 <- lm(viral_load ~ social_contacts + foraging_distance + body_condition +
@@ -35,6 +35,11 @@ summary(model)
               data = dat)
  summary(model3)
 
+ #Figure 2 - qqplot
+ qqnorm(model3$residuals,  ## Check if the regression residuals are normally distributed
+        main = "", ylab = "Residuals from Model 3")        
+ qqline(model3$residuals)  ## Add the 1:1 line for visualisation
+ 
  
  # Plot residuals vs fitted values from your final model
  plot(model3, which = 1)
@@ -73,10 +78,12 @@ summary(model)
  # Other predictors (social_contacts, foraging_distance) held at their mean = 0
  curve(cbind(1, 0, 0, x) %*% coef(model3),
        add = TRUE,
-       col = "steelblue",
+       col = "firebrick",
        lwd = 2) 
  
  # Reset to single plot layout
  par(mfrow = c(1, 1)) 
+ 
+ summary(model3)
  
  
